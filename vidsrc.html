@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>IMDb File Viewer</title>
+  <title>IMDb Poster Grid</title>
   <style>
     body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; }
-    input { margin-bottom: 15px; padding: 10px; width: 100%; font-size: 1rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-    .item { background: #111; padding: 10px; border-radius: 6px; text-align: center; cursor: pointer; }
-    .item:hover { background: #222; }
-    .item img { width: 100%; border-radius: 4px; margin-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .item { background: #111; border-radius: 6px; cursor: pointer; overflow: hidden; text-align: center; }
+    .item img { width: 100%; display: block; border-radius: 6px 6px 0 0; }
+    .item-id { padding: 6px; font-size: 0.85rem; color: #ccc; }
     .overlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center;
@@ -30,8 +29,7 @@
   </style>
 </head>
 <body>
-  <h1>🎬 IMDb Titles with Thumbnails</h1>
-  <input type="text" id="search" placeholder="Search titles...">
+  <h1>🎬 IMDb Poster Grid</h1>
   <div class="grid" id="grid"></div>
   <button id="loadMore" onclick="loadBatch()">Generate More</button>
 
@@ -40,19 +38,16 @@
     <iframe id="player" allowfullscreen></iframe>
   </div>
 
-  <!-- Your IMDb ID list -->
+  <!-- IMDb ID list -->
   <script src="id.js"></script>
-
   <script>
-    const apiKey = '3a73619bbb8fc6d47742d1b5b2b707b5';
+    const apiKey = "3a73619bbb8fc6d47742d1b5b2b707b5";
     let index = 0;
     const batchSize = 50;
     const grid = document.getElementById("grid");
     const player = document.getElementById("player");
     const overlay = document.getElementById("overlay");
-    const searchInput = document.getElementById("search");
     const loadMoreBtn = document.getElementById("loadMore");
-    const allItems = [];
 
     function openOverlay(id) {
       player.src = `https://vidsrc.xyz/embed/movie/${id}`;
@@ -64,16 +59,16 @@
       player.src = "";
     }
 
-    async function fetchMovieData(id) {
+    async function fetchPoster(imdbId) {
       try {
-        const res = await fetch(`https://www.omdbapi.com/?apikey=${apiKey}&i=${id}`);
+        const res = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?api_key=${apiKey}&external_source=imdb_id`);
         const data = await res.json();
-        return {
-          title: data.Title || id,
-          poster: data.Poster && data.Poster !== "N/A" ? data.Poster : "https://via.placeholder.com/150x220?text=No+Image"
-        };
+        const movie = data.movie_results[0];
+        return movie && movie.poster_path
+          ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+          : "https://via.placeholder.com/140x210?text=No+Image";
       } catch {
-        return { title: id, poster: "https://via.placeholder.com/150x220?text=Error" };
+        return "https://via.placeholder.com/140x210?text=Error";
       }
     }
 
@@ -81,14 +76,15 @@
       let added = 0;
       while (added < batchSize && index < imdbIds.length) {
         const id = imdbIds[index];
-        const { title, poster } = await fetchMovieData(id);
+        const poster = await fetchPoster(id);
         const div = document.createElement("div");
         div.className = "item";
-        div.dataset.title = title.toLowerCase();
-        div.innerHTML = `<img src="${poster}" alt="${title}"><div>${title}</div>`;
+        div.innerHTML = `
+          <img src="${poster}" alt="${id}">
+          <div class="item-id">${id}</div>
+        `;
         div.onclick = () => openOverlay(id);
         grid.appendChild(div);
-        allItems.push(div);
         index++;
         added++;
       }
@@ -98,13 +94,7 @@
       }
     }
 
-    searchInput.addEventListener("input", () => {
-      const query = searchInput.value.toLowerCase();
-      allItems.forEach(item => {
-        item.style.display = item.dataset.title.includes(query) ? "block" : "none";
-      });
-    });
-
+    // Initial load
     loadBatch();
   </script>
 </body>
