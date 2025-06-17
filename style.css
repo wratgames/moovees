@@ -1,38 +1,52 @@
-body {
+* {
+  box-sizing: border-box;
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #121212;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #111;
   color: #fff;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 header {
-  padding: 1rem;
-  background: #1f1f1f;
+  padding: 16px;
   text-align: center;
+  font-size: 24px;
+  background-color: #000;
+  border-bottom: 1px solid #333;
 }
 
-header input {
-  margin-top: 1rem;
-  padding: 0.5rem;
+#searchInput {
   width: 80%;
   max-width: 500px;
-  border-radius: 5px;
+  padding: 10px 14px;
+  font-size: 16px;
   border: none;
+  border-radius: 6px;
+  margin: 20px auto;
+  display: block;
+  background-color: #222;
+  color: #fff;
 }
 
-main {
+#main {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1rem;
-  padding: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 20px;
 }
 
 .card {
-  background: #1f1f1f;
+  background-color: #1a1a1a;
   border-radius: 8px;
   overflow: hidden;
-  cursor: pointer;
   transition: transform 0.2s;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .card:hover {
@@ -41,51 +55,98 @@ main {
 
 .card img {
   width: 100%;
-  height: auto;
+  height: 240px;
+  object-fit: cover;
+  display: block;
 }
 
-.card h3 {
-  padding: 0.5rem;
-  font-size: 1rem;
-}
-
-.modal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0,0,0,0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: #1a1a1a;
-  padding: 1rem;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 800px;
+.card h4 {
+  padding: 10px;
+  font-size: 16px;
   text-align: center;
-  position: relative;
 }
 
-#player {
-  margin-top: 1rem;
+#modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+}
+
+#modalContent {
+  max-width: 90%;
+  width: 900px;
+  background-color: #222;
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#modalTitle {
+  font-size: 22px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+#modalIframe {
+  width: 100%;
+  height: 500px;
   border: none;
-  border-radius: 8px;
-  background: black;
+  background: #000;
+  border-radius: 6px;
+}
+
+select {
+  background-color: #2a2a2a;
+  color: white;
+  border: 1px solid #555;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin: 4px;
+  appearance: none;
+}
+
+select:focus {
+  outline: none;
+  border-color: #00c1db;
+  box-shadow: 0 0 4px #00c1db;
 }
 
 #closeModal {
   position: absolute;
-  right: 1rem;
-  top: 0.5rem;
-  font-size: 2rem;
+  top: 10px;
+  right: 14px;
+  background: #ff3b3b;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 14px;
 }
 
-.hidden {
-  display: none;
+#closeModal:hover {
+  background: #ff1f1f;
+}
+
+@media screen and (max-width: 768px) {
+  #modalIframe {
+    height: 300px;
+  }
+
+  #searchInput {
+    width: 90%;
+  }
 }
