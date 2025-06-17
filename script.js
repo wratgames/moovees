@@ -1,61 +1,56 @@
-const API_KEY = "3a73619bbb8fc6d47742d1b5b2b707b5";
-const BASE_URL = "https://api.themoviedb.org/3";
-const content = document.getElementById("content");
-const searchInput = document.getElementById("searchInput");
+// script.js
 
+const apiKey = "3a73619bbb8fc6d47742d1b5b2b707b5";
+const apiBase = "https://api.themoviedb.org/3";
+const imageBase = "https://image.tmdb.org/t/p/w500";
+const mainContainer = document.getElementById("main");
 const modal = document.getElementById("modal");
-const closeModal = document.getElementById("closeModal");
 const modalTitle = document.getElementById("modalTitle");
-const player = document.getElementById("player");
-const sourceSelect = document.getElementById("sourceSelect");
-const tvControls = document.getElementById("tvControls");
+const modalIframe = document.getElementById("modalIframe");
+const modalSources = document.getElementById("sourceSelect");
 const seasonSelect = document.getElementById("seasonSelect");
 const episodeSelect = document.getElementById("episodeSelect");
+const searchInput = document.getElementById("searchInput");
+const closeModalBtn = document.getElementById("closeModal");
 
-closeModal.onclick = () => {
-  modal.classList.add("hidden");
-  player.src = "";
-};
+let currentPage = 1;
+let isFetching = false;
 
-async function fetchItems(query = "") {
-  let url = query
-    ? `${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}`
-    : `${BASE_URL}/trending/all/week?api_key=${API_KEY}`;
-  const res = await fetch(url);
+async function fetchPopular() {
+  if (isFetching) return;
+  isFetching = true;
+  const res = await fetch(`${apiBase}/trending/all/week?api_key=${apiKey}&page=${currentPage}`);
   const data = await res.json();
-  renderItems(data.results);
+  data.results.forEach(show => createCard(show));
+  isFetching = false;
 }
 
-function renderItems(items) {
-  content.innerHTML = "";
-  items.forEach((item) => {
-    const title = item.title || item.name;
-    const poster = item.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : "https://via.placeholder.com/150x225?text=No+Image";
-
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `<img src="${poster}" /><h3>${title}</h3>`;
-    card.onclick = () => {
-      if (item.media_type === "tv") {
-        showTVModal(item.id, item.name);
-      } else {
-        showMovieModal(item.id, title);
-      }
-    };
-    content.appendChild(card);
-  });
+function createCard(item) {
+  const div = document.createElement("div");
+  div.classList.add("card");
+  const title = item.title || item.name;
+  const poster = item.poster_path ? `${imageBase}${item.poster_path}` : "";
+  div.innerHTML = `
+    <img src="${poster}" alt="${title}">
+    <h4>${title}</h4>
+  `;
+  div.onclick = () => {
+    if (item.media_type === "tv") {
+      showTVModal(item.id, title);
+    } else {
+      showMovieModal(item.id, title);
+    }
+  };
+  mainContainer.appendChild(div);
 }
 
 function showMovieModal(movieId, title) {
-  modal.classList.remove("hidden");
   modalTitle.textContent = title;
-  tvControls.style.display = "none";
-
+  seasonSelect.style.display = "none";
+  episodeSelect.style.display = "none";
   const sources = [
-    `https://player.vidsrc.co/embed/movie/${movieId}?server=2`,
     `https://vidsrc.xyz/embed/movie?tmdb=${movieId}`,
+    `https://player.vidsrc.co/embed/movie/${movieId}?server=2`,
     `https://player.autoembed.cc/embed/movie/${movieId}?server=1`,
     `https://vidsrc.icu/embed/movie/${movieId}`,
     `https://moviekex.online/embed/movie/${movieId}`,
@@ -63,58 +58,49 @@ function showMovieModal(movieId, title) {
     `https://moviesapi.club/movie/${movieId}`,
     `https://vidlink.pro/movie/${movieId}?autoplay=true&poster=true&primaryColor=00c1db`,
     `https://embed.su/embed/movie/${movieId}`,
-    `https://play2.123embed.net/movie/${movieId}`,
     `https://vidora.su/movie/${movieId}?colour=dba4b2&autoplay=true&autonextepisode=true&logo=https://4texas4.github.io/ratgames/icon.png`
   ];
-
-  sourceSelect.innerHTML = sources.map(
-    url => `<option value="${url}">${new URL(url).hostname}</option>`
-  ).join("");
-
-  player.src = sources[0];
-
-  sourceSelect.onchange = () => {
-    player.src = sourceSelect.value;
-  };
+  loadSources(sources);
 }
 
 async function showTVModal(seriesId, title) {
-  modal.classList.remove("hidden");
   modalTitle.textContent = title;
-  tvControls.style.display = "block";
-
-  const seasonRes = await fetch(`${BASE_URL}/tv/${seriesId}?api_key=${API_KEY}`);
-  const seasonData = await seasonRes.json();
-
-  seasonSelect.innerHTML = seasonData.seasons.map(
-    s => `<option value="${s.season_number}">${s.name}</option>`
-  ).join("");
-
-  async function loadEpisodes(season) {
-    const epRes = await fetch(`${BASE_URL}/tv/${seriesId}/season/${season}?api_key=${API_KEY}`);
-    const epData = await epRes.json();
-    episodeSelect.innerHTML = epData.episodes.map(
-      e => `<option value="${e.episode_number}">${e.name}</option>`
-    ).join("");
-
-    loadTVSources(seriesId, season, epData.episodes[0].episode_number);
-  }
-
-  seasonSelect.onchange = () => {
-    loadEpisodes(seasonSelect.value);
-  };
-
-  episodeSelect.onchange = () => {
-    loadTVSources(seriesId, seasonSelect.value, episodeSelect.value);
-  };
-
-  await loadEpisodes(seasonSelect.value || 1);
+  seasonSelect.style.display = "inline-block";
+  episodeSelect.style.display = "inline-block";
+  const res = await fetch(`${apiBase}/tv/${seriesId}?api_key=${apiKey}`);
+  const data = await res.json();
+  seasonSelect.innerHTML = "";
+  data.seasons.forEach(season => {
+    const opt = document.createElement("option");
+    opt.value = season.season_number;
+    opt.textContent = season.name;
+    seasonSelect.appendChild(opt);
+  });
+  seasonSelect.onchange = () => loadEpisodes(seriesId);
+  episodeSelect.onchange = () => loadTVSources(seriesId);
+  loadEpisodes(seriesId);
 }
 
-function loadTVSources(seriesId, season, episode) {
+async function loadEpisodes(seriesId) {
+  const season = seasonSelect.value;
+  const res = await fetch(`${apiBase}/tv/${seriesId}/season/${season}?api_key=${apiKey}`);
+  const data = await res.json();
+  episodeSelect.innerHTML = "";
+  data.episodes.forEach(ep => {
+    const opt = document.createElement("option");
+    opt.value = ep.episode_number;
+    opt.textContent = ep.name;
+    episodeSelect.appendChild(opt);
+  });
+  loadTVSources(seriesId);
+}
+
+function loadTVSources(seriesId) {
+  const season = seasonSelect.value;
+  const episode = episodeSelect.value;
   const sources = [
-    `https://player.vidsrc.co/embed/tv/${seriesId}/${season}/${episode}?server=2`,
     `https://vidsrc.xyz/embed/tv?tmdb=${seriesId}&season=${season}&episode=${episode}`,
+    `https://player.vidsrc.co/embed/tv/${seriesId}/${season}/${episode}?server=2`,
     `https://player.autoembed.cc/embed/tv/${seriesId}/${season}/${episode}`,
     `https://vidsrc.icu/embed/tv/${seriesId}/${season}/${episode}`,
     `https://moviekex.online/embed/tv/${seriesId}/${season}/${episode}`,
@@ -122,25 +108,49 @@ function loadTVSources(seriesId, season, episode) {
     `https://moviesapi.club/tv/${seriesId}-${season}-${episode}`,
     `https://vidlink.pro/tv/${seriesId}/${season}/${episode}?autoplay=false&poster=true&primaryColor=00c1db`,
     `https://embed.su/embed/tv/${seriesId}/${season}/${episode}`,
-    `https://play2.123embed.net/tv/${seriesId}/${season}/${episode}`,
     `https://vidora.su/tv/${seriesId}/${season}/${episode}?colour=dba4b2&autoplay=true&autonextepisode=true&backbutton=https://ratgames.vercel.app/&pausescreen=false&logo=https://4texas4.github.io/ratgames/icon.png`
   ];
-
-  sourceSelect.innerHTML = sources.map(
-    url => `<option value="${url}">${new URL(url).hostname}</option>`
-  ).join("");
-
-  player.src = sources[0];
-
-  sourceSelect.onchange = () => {
-    player.src = sourceSelect.value;
-  };
+  loadSources(sources);
 }
 
-searchInput.addEventListener("keyup", (e) => {
+function loadSources(sources) {
+  modalSources.innerHTML = "";
+  sources.forEach(src => {
+    const opt = document.createElement("option");
+    opt.value = src;
+    opt.textContent = new URL(src).hostname;
+    modalSources.appendChild(opt);
+  });
+  modalSources.onchange = () => {
+    modalIframe.src = modalSources.value;
+  };
+  modalIframe.src = sources[0];
+  modal.style.display = "flex";
+}
+
+closeModalBtn.onclick = () => {
+  modal.style.display = "none";
+  modalIframe.src = "";
+};
+
+searchInput.addEventListener("keydown", async e => {
   if (e.key === "Enter") {
-    fetchItems(searchInput.value);
+    const query = searchInput.value.trim();
+    if (!query) return;
+    mainContainer.innerHTML = "";
+    const res = await fetch(`${apiBase}/search/multi?api_key=${apiKey}&query=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    data.results.forEach(createCard);
   }
 });
 
-fetchItems();
+// Infinite scroll
+window.addEventListener("scroll", () => {
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+    currentPage++;
+    fetchPopular();
+  }
+});
+
+// Initial load
+fetchPopular();
